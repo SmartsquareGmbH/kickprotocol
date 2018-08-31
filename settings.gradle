@@ -1,0 +1,3 @@
+include ':sample', ':library'
+
+enableFeaturePreview('STABLE_PUBLISHING')

@@ -1,0 +1,48 @@
+buildscript {
+    ext {
+        version = "1.0.0"
+        versionCode = 1
+
+        androidPluginVersion = "3.3.0-alpha08"
+        gradleVersion = "4.10"
+
+        kotlinVersion = "1.2.61"
+        playServicesVersion = "15.0.1"
+        appcompatVersion = "1.0.0-rc02"
+
+        rxJavaVersion = "2.2.1"
+        rxPermissionsVersion = "0.10.2"
+        autodisposeVersion = "1.0.0-RC2"
+        kOptionalVersion = "1.6.0"
+        moshiVersion = "1.6.0"
+    }
+
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$androidPluginVersion"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+apply plugin: "base"
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+subprojects {
+    version = rootProject.ext.version
+    group = "de.smartsquare"
+}
+
+wrapper {
+    gradleVersion = project.ext.gradleVersion
+}
