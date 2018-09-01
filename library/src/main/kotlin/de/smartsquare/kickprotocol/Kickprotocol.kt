@@ -91,12 +91,7 @@ class Kickprotocol(
     ): Completable {
         return Completable.fromAction {
             nativeClient.startAdvertising(nickname, serviceId, DefaultConnectionLifecycleCallback(), advertisingOptions)
-                .addOnFailureListener {
-                    throw KickprotocolAdvertisementException(
-                        "Starting advertisement failed",
-                        it
-                    )
-                }
+                .addOnFailureListener { throw KickprotocolAdvertisementException("Starting advertisement failed", it) }
         }
     }
 
@@ -108,12 +103,7 @@ class Kickprotocol(
     ): Completable {
         return Completable.fromAction {
             nativeClient.startDiscovery(serviceId, DefaultDiscoveryEndpointCallback(), discoveryOptions)
-                .addOnFailureListener {
-                    throw KickprotocolDiscoveryException(
-                        "Starting discovery failed",
-                        it
-                    )
-                }
+                .addOnFailureListener { throw KickprotocolDiscoveryException("Starting discovery failed", it) }
         }
     }
 
@@ -122,11 +112,7 @@ class Kickprotocol(
         return Completable.fromAction {
             nativeClient.requestConnection(nickname, endpointId, DefaultConnectionLifecycleCallback())
                 .addOnFailureListener {
-                    throw KickprotocolConnectionException(
-                        endpointId,
-                        "Could not connect to endpoint $endpointId",
-                        it
-                    )
+                    throw KickprotocolConnectionException(endpointId, "Could not connect to endpoint $endpointId", it)
                 }
         }
     }
@@ -135,13 +121,7 @@ class Kickprotocol(
     fun send(endpointId: String, message: NearbyMessage): Completable {
         return Completable.fromAction {
             nativeClient.sendPayload(endpointId, message.toPayload(moshi))
-                .addOnFailureListener {
-                    KickprotocolSendException(
-                        endpointId,
-                        "Could not send message",
-                        it
-                    )
-                }
+                .addOnFailureListener { KickprotocolSendException(endpointId, "Could not send message", it) }
         }
     }
 
@@ -151,11 +131,7 @@ class Kickprotocol(
             connectedEndpoints.forEach { endpointId ->
                 nativeClient.sendPayload(endpointId, message.toPayload(moshi))
                     .addOnFailureListener {
-                        KickprotocolSendException(
-                            endpointId,
-                            "Could not send message as part of broadcast",
-                            it
-                        )
+                        KickprotocolSendException(endpointId, "Could not send message as part of broadcast", it)
                     }
             }
         }
@@ -197,10 +173,7 @@ class Kickprotocol(
             nativeClient.acceptConnection(endpointId, object : PayloadCallback() {
                 override fun onPayloadReceived(endpointId: String, payload: Payload) {
                     try {
-                        val message = KickprotocolMessageWithEndpoint(
-                            endpointId,
-                            payload.toNearbyMessage(moshi)
-                        )
+                        val message = KickprotocolMessageWithEndpoint(endpointId, payload.toNearbyMessage(moshi))
 
                         internalMessageSubject.onNext(message)
                     } catch (exception: KickprotocolException) {

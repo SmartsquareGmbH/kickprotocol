@@ -30,14 +30,7 @@ class MainActivity : AppCompatActivity() {
         kickprotocol.createGameMessageEvents
             .autoDisposable(this.scope())
             .subscribe { (_, message) ->
-                val lobby = Lobby(
-                    message.username,
-                    "SampleLobby",
-                    listOf(message.username),
-                    emptyList(),
-                    0,
-                    0
-                )
+                val lobby = Lobby(message.username, "SampleLobby", listOf(message.username), emptyList(), 0, 0)
 
                 kickprotocol.broadcast(MatchmakingMessage(lobby))
             }
