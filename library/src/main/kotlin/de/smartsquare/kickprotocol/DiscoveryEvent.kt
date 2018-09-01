@@ -1,4 +1,4 @@
-package de.smartsquare.kickprotocol.nearby
+package de.smartsquare.kickprotocol
 
 /**
  * @author Ruben Gees

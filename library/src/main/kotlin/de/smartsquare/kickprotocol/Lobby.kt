@@ -1,10 +1,11 @@
-package de.smartsquare.kickprotocol.domain
+package de.smartsquare.kickprotocol
 
 /**
  * @author Ruben Gees
  */
-data class PlayingLobby(
+data class Lobby(
     val owner: String,
+    val name: String,
     val leftTeam: List<String>,
     val rightTeam: List<String>,
     val scoreLeftTeam: Int,

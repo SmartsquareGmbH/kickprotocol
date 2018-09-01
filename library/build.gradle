@@ -1,6 +1,9 @@
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
+apply plugin: "kotlin-kapt"
 apply plugin: "maven-publish"
+
+apply plugin: "de.mannodermaus.android-junit5"
 
 afterEvaluate {
     generateReleaseBuildConfig.enabled = false
@@ -30,10 +33,15 @@ dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
 
     api "com.google.android.gms:play-services-nearby:$playServicesVersion"
-
     api "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
-
     api "com.squareup.moshi:moshi:$moshiVersion"
+
+    kapt "com.squareup.moshi:moshi-kotlin-codegen:$moshiVersion"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+    testImplementation "org.amshove.kluent:kluent:$kluentVersion"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
 }
 
 task sourceJar(type: Jar) {
