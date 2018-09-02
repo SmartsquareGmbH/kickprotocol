@@ -16,6 +16,9 @@ data class JoinLobbyMessage(
     val position: TeamPosition
 ) : KickprotocolMessage() {
 
+    /**
+     * Enum representing the possible positions, a team can have.
+     */
     enum class TeamPosition {
         LEFT, RIGHT
     }

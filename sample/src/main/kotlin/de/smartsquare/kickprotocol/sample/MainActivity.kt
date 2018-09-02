@@ -25,14 +25,20 @@ class MainActivity : AppCompatActivity() {
 
         kickprotocol.connectionEvents
             .autoDisposable(this.scope())
-            .subscribe { kickprotocol.send(it.endpointId, IdleMessage()) }
+            .subscribe {
+                kickprotocol.sendAndAwait(it.endpointId, IdleMessage())
+                    .autoDisposable(this.scope())
+                    .subscribe()
+            }
 
         kickprotocol.createGameMessageEvents
             .autoDisposable(this.scope())
             .subscribe { (_, message) ->
                 val lobby = Lobby(message.username, "SampleLobby", listOf(message.username), emptyList(), 0, 0)
 
-                kickprotocol.broadcast(MatchmakingMessage(lobby))
+                kickprotocol.broadcastAndAwait(MatchmakingMessage(lobby))
+                    .autoDisposable(this.scope())
+                    .subscribe()
             }
 
         kickprotocol.joinLobbyMessageEvents
@@ -56,13 +62,17 @@ class MainActivity : AppCompatActivity() {
 
                 val lobby = Lobby("Sample", "SampleLobby", leftTeam, rightTeam, 0, 0)
 
-                kickprotocol.broadcast(MatchmakingMessage(lobby))
+                kickprotocol.broadcastAndAwait(MatchmakingMessage(lobby))
+                    .autoDisposable(this.scope())
+                    .subscribe()
             }
 
         kickprotocol.leaveLobbyMessageEvents
             .autoDisposable(this.scope())
             .subscribe {
-                kickprotocol.broadcast(IdleMessage())
+                kickprotocol.broadcastAndAwait(IdleMessage())
+                    .autoDisposable(this.scope())
+                    .subscribe()
             }
 
         kickprotocol.createGameMessageEvents
@@ -72,7 +82,9 @@ class MainActivity : AppCompatActivity() {
                 val rightTeam = listOf("Else", "te\$t")
                 val lobby = Lobby("Sample", "SampleLobby", leftTeam, rightTeam, 5, 7)
 
-                kickprotocol.broadcast(PlayingMessage(lobby))
+                kickprotocol.broadcastAndAwait(PlayingMessage(lobby))
+                    .autoDisposable(this.scope())
+                    .subscribe()
             }
     }
 
@@ -86,6 +98,7 @@ class MainActivity : AppCompatActivity() {
                 if (it.granted) {
                     kickprotocol
                         .advertise("sample")
+                        .autoDisposable(this.scope())
                         .subscribe()
                 } else {
                     finish()

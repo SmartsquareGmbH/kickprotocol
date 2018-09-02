@@ -8,10 +8,10 @@ apply plugin: "org.jetbrains.dokka-android"
 apply plugin: "maven-publish"
 
 apply plugin: "de.mannodermaus.android-junit5"
+apply plugin: "com.vanniktech.android.junit.jacoco"
 
-afterEvaluate {
-    generateReleaseBuildConfig.enabled = false
-}
+apply plugin: "org.jlleitschuh.gradle.ktlint"
+apply plugin: "io.gitlab.arturbosch.detekt"
 
 android {
     compileSdkVersion 28
@@ -72,6 +72,25 @@ task sourceJar(type: Jar) {
     classifier "source"
 }
 
+detekt {
+    version = detektVersion
+
+    profile("main") {
+        input = "$projectDir/src/main/kotlin"
+        config = "${rootProject.projectDir}/config/detekt/detekt.yml"
+        output = "$buildDir/reports/detekt"
+    }
+}
+
+ktlint {
+    version = ktlintVersion
+    reporters = ["CHECKSTYLE"]
+}
+
+junitJacoco {
+    jacocoVersion = rootProject.ext.jacocoVersion
+}
+
 publishing {
     publications {
         library(MavenPublication) {
@@ -96,4 +115,10 @@ publishing {
             }
         }
     }
+}
+
+afterEvaluate {
+    generateReleaseBuildConfig.enabled = false
+
+    check.dependsOn detektCheck
 }

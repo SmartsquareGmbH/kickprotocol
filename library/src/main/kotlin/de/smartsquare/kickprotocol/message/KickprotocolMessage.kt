@@ -11,6 +11,7 @@ import de.smartsquare.kickprotocol.KickprotocolInvalidMessageException
  *
  * @author Ruben Gees
  */
+@Suppress("UnnecessaryAbstractClass")
 abstract class KickprotocolMessage {
 
     internal fun toPayload(moshi: Moshi): Payload {
@@ -21,6 +22,7 @@ abstract class KickprotocolMessage {
     }
 }
 
+@Suppress("ThrowsCount")
 internal fun Payload.toNearbyMessage(moshi: Moshi): KickprotocolMessage {
     val content = this.asBytes()?.toString(Charsets.UTF_8)
         ?: throw KickprotocolInvalidMessageException("Message without content could not be parsed")

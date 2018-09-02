@@ -6,9 +6,9 @@ buildscript {
         androidPluginVersion = "3.3.0-alpha08"
         gradleVersionsPluginVersion = "0.20.0"
         gradleVersion = "4.10"
-
         kotlinVersion = "1.2.61"
         dokkaVersion = "0.9.17"
+
         playServicesVersion = "15.0.1"
         appcompatVersion = "1.0.0-rc02"
 
@@ -20,11 +20,18 @@ buildscript {
 
         junitPluginVersion = "1.2.0.0"
         junitVersion = "5.2.0"
+        jacocoPluginVersion = "0.12.0"
+        jacocoVersion = "0.8.2"
         kluentVersion = "1.41"
         mockkVersion = "1.8.6"
+
+        ktlintGradleVersion = "5.0.0"
+        ktlintVersion = "0.27.0"
+        detektVersion = "1.0.0.RC8"
     }
 
     repositories {
+        gradlePluginPortal()
         google()
         jcenter()
     }
@@ -33,8 +40,13 @@ buildscript {
         classpath "com.android.tools.build:gradle:$androidPluginVersion"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath "org.jetbrains.dokka:dokka-android-gradle-plugin:$dokkaVersion"
-        classpath "de.mannodermaus.gradle.plugins:android-junit5:$junitPluginVersion"
         classpath "com.github.ben-manes:gradle-versions-plugin:$gradleVersionsPluginVersion"
+
+        classpath "de.mannodermaus.gradle.plugins:android-junit5:$junitPluginVersion"
+        classpath "com.vanniktech:gradle-android-junit-jacoco-plugin:$jacocoPluginVersion"
+
+        classpath "gradle.plugin.io.gitlab.arturbosch.detekt:detekt-gradle-plugin:$detektVersion"
+        classpath "gradle.plugin.org.jlleitschuh.gradle:ktlint-gradle:$ktlintGradleVersion"
     }
 }
 
