@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
 /**
  * @author Ruben Gees
  */
-class NearbyMessageKtTest {
+class KickprotocolMessageKtTest {
 
     private val moshi = Moshi.Builder().build()
 

@@ -8,6 +8,7 @@ buildscript {
         gradleVersion = "4.10"
 
         kotlinVersion = "1.2.61"
+        dokkaVersion = "0.9.17"
         playServicesVersion = "15.0.1"
         appcompatVersion = "1.0.0-rc02"
 
@@ -30,6 +31,7 @@ buildscript {
     dependencies {
         classpath "com.android.tools.build:gradle:$androidPluginVersion"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath "org.jetbrains.dokka:dokka-android-gradle-plugin:$dokkaVersion"
         classpath "de.mannodermaus.gradle.plugins:android-junit5:$junitPluginVersion"
         classpath "com.github.ben-manes:gradle-versions-plugin:$gradleVersionsPluginVersion"
     }

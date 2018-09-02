@@ -1,6 +1,10 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.dokka.gradle.DokkaTask
+
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 apply plugin: "kotlin-kapt"
+apply plugin: "org.jetbrains.dokka-android"
 apply plugin: "maven-publish"
 
 apply plugin: "de.mannodermaus.android-junit5"
@@ -44,6 +48,24 @@ dependencies {
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
 }
 
+tasks.withType(KotlinCompile).all {
+    kotlinOptions {
+        freeCompilerArgs = ["-Xjsr305=strict"]
+    }
+}
+
+task dokkaJavadoc(type: DokkaTask) {
+    outputDirectory = "${project.buildDir}/javadoc"
+    outputFormat = "javadoc"
+
+    inputs.dir "src/main/kotlin"
+}
+
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    from "${project.buildDir}/javadoc"
+    classifier = "javadoc"
+}
+
 task sourceJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
     classifier "source"
@@ -52,21 +74,22 @@ task sourceJar(type: Jar) {
 publishing {
     publications {
         library(MavenPublication) {
-            artifactId 'kickprotocol'
+            artifactId "kickprotocol"
 
             artifact(sourceJar)
+            artifact(javadocJar)
             artifact("$buildDir/outputs/aar/library-release.aar")
 
             pom.withXml {
-                def dependenciesNode = asNode().appendNode('dependencies')
+                def dependenciesNode = asNode().appendNode("dependencies")
 
                 configurations.api.allDependencies.each {
                     if (it.group != null && (it.name != null || "unspecified".equals(it.name)) && it.version != null) {
-                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        def dependencyNode = dependenciesNode.appendNode("dependency")
 
-                        dependencyNode.appendNode('groupId', it.group)
-                        dependencyNode.appendNode('artifactId', it.name)
-                        dependencyNode.appendNode('version', it.version)
+                        dependencyNode.appendNode("groupId", it.group)
+                        dependencyNode.appendNode("artifactId", it.name)
+                        dependencyNode.appendNode("version", it.version)
                     }
                 }
             }

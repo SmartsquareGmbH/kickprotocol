@@ -7,9 +7,11 @@ import com.squareup.moshi.Moshi
 import de.smartsquare.kickprotocol.KickprotocolInvalidMessageException
 
 /**
+ * Base type of all messages for the kickprotocol.
+ *
  * @author Ruben Gees
  */
-abstract class NearbyMessage {
+abstract class KickprotocolMessage {
 
     internal fun toPayload(moshi: Moshi): Payload {
         val head = javaClass.simpleName
@@ -19,7 +21,7 @@ abstract class NearbyMessage {
     }
 }
 
-internal fun Payload.toNearbyMessage(moshi: Moshi): NearbyMessage {
+internal fun Payload.toNearbyMessage(moshi: Moshi): KickprotocolMessage {
     val content = this.asBytes()?.toString(Charsets.UTF_8)
         ?: throw KickprotocolInvalidMessageException("Message without content could not be parsed")
 
@@ -39,7 +41,7 @@ internal fun Payload.toNearbyMessage(moshi: Moshi): NearbyMessage {
     }
 
     return try {
-        moshi.adapter(type).fromJson(body) as? NearbyMessage
+        moshi.adapter(type).fromJson(body) as? KickprotocolMessage
             ?: throw KickprotocolInvalidMessageException("Message could not be parsed: $content")
     } catch (exception: JsonDataException) {
         throw KickprotocolInvalidMessageException(

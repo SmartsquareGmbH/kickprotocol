@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        kickprotocol.destroy()
+        kickprotocol.stop()
 
         super.onStop()
     }
