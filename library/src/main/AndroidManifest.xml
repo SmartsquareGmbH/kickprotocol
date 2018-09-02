@@ -1,4 +1,5 @@
-<manifest package="de.smartsquare.kickprotocol">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.smartsquare.kickprotocol">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
