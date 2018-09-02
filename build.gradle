@@ -21,6 +21,7 @@ buildscript {
         junitPluginVersion = "1.2.0.0"
         junitVersion = "5.2.0"
         kluentVersion = "1.41"
+        mockkVersion = "1.8.6"
     }
 
     repositories {

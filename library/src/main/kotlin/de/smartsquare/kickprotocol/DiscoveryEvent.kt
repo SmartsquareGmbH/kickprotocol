@@ -6,16 +6,16 @@ package de.smartsquare.kickprotocol
  *
  * @author Ruben Gees
  */
-sealed class DiscoveryEvent(val endpointId: String) {
+sealed class DiscoveryEvent(open val endpointId: String) {
 
     /**
      * Event signaling that a device is found. A connection attempt can be made, after this event is emitted.
      */
-    class Found(endpointId: String) : DiscoveryEvent(endpointId)
+    data class Found(override val endpointId: String) : DiscoveryEvent(endpointId)
 
     /**
      * Event signaling that a device is lost. This typically means that the device is not in range or has closed
      * the application.
      */
-    class Lost(endpointId: String) : DiscoveryEvent(endpointId)
+    data class Lost(override val endpointId: String) : DiscoveryEvent(endpointId)
 }

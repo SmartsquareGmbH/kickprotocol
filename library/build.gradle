@@ -44,6 +44,7 @@ dependencies {
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     testImplementation "org.amshove.kluent:kluent:$kluentVersion"
+    testImplementation "io.mockk:mockk:$mockkVersion"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
 }

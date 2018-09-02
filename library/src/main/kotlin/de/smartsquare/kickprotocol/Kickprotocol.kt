@@ -79,7 +79,7 @@ class Kickprotocol(
      * Observable emitting all messages sent by other devices.
      * See the specialized Observables for simplified usage.
      */
-    val messageEvents: Observable<KickprotocolMessageWithEndpoint<*>> get() = internalMessageSubject.hide()
+    val messageEvents: KickObservable<*> get() = internalMessageSubject.hide()
 
     /**
      * Observable emitting all [IdleMessage]s sent by other devices.
@@ -122,6 +122,9 @@ class Kickprotocol(
     private val internalDiscoverySubject = PublishSubject.create<DiscoveryEvent>()
     private val internalConnectionSubject = PublishSubject.create<ConnectionEvent>()
     private val internalMessageSubject = PublishSubject.create<KickprotocolMessageWithEndpoint<*>>()
+
+    private val internalMessageSentSuccessSubject = PublishSubject.create<Pair<String, Long>>()
+    private val internalMessageSentFailureSubject = PublishSubject.create<Pair<String, Long>>()
 
     /**
      * Alternate constructor allowing to simply pass a [Context] instead of a [ConnectionsClient].
@@ -171,9 +174,12 @@ class Kickprotocol(
             .setStrategy(Strategy.P2P_CLUSTER)
             .build()
     ): Completable {
-        return Completable.fromAction {
+        return Completable.create { emitter ->
             nativeClient.startAdvertising(nickname, serviceId, DefaultConnectionLifecycleCallback(), advertisingOptions)
-                .addOnFailureListener { throw KickprotocolAdvertisementException("Starting advertisement failed", it) }
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener {
+                    emitter.onError(KickprotocolAdvertisementException("Starting advertisement failed", it))
+                }
         }
     }
 
@@ -192,9 +198,12 @@ class Kickprotocol(
             .setStrategy(Strategy.P2P_CLUSTER)
             .build()
     ): Completable {
-        return Completable.fromAction {
+        return Completable.create { emitter ->
             nativeClient.startDiscovery(serviceId, DefaultDiscoveryEndpointCallback(), discoveryOptions)
-                .addOnFailureListener { throw KickprotocolDiscoveryException("Starting discovery failed", it) }
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener {
+                    emitter.onError(KickprotocolDiscoveryException("Starting discovery failed", it))
+                }
         }
     }
 
@@ -210,10 +219,13 @@ class Kickprotocol(
      */
     @CheckResult
     fun connect(nickname: String, endpointId: String): Completable {
-        return Completable.fromAction {
+        return Completable.create { emitter ->
             nativeClient.requestConnection(nickname, endpointId, DefaultConnectionLifecycleCallback())
+                .addOnSuccessListener { emitter.onComplete() }
                 .addOnFailureListener {
-                    throw KickprotocolConnectionException(endpointId, "Could not connect to endpoint $endpointId", it)
+                    emitter.onError(
+                        KickprotocolConnectionException(endpointId, "Could not connect to endpoint $endpointId", it)
+                    )
                 }
         }
     }
@@ -225,13 +237,44 @@ class Kickprotocol(
      * which only does actual work after calling [Completable.subscribe].
      * Error-handling is done by implementing the onError callback in [Completable.subscribe].
      * The actual exceptions are wrapped in a [KickprotocolSendException] for this method.
+     *
+     * @see sendAndAwait
+     * @see broadcast
+     * @see broadcastAndAwait
      */
     @CheckResult
     fun send(endpointId: String, message: KickprotocolMessage): Completable {
-        return Completable.fromAction {
-            nativeClient.sendPayload(endpointId, message.toPayload(moshi))
-                .addOnFailureListener { KickprotocolSendException(endpointId, "Could not send message", it) }
-        }
+        return send(endpointId, message.toPayload(moshi))
+    }
+
+    /**
+     * Method for sending a [message] to another connected device, identified by the given [endpointId] and awaiting
+     * the message to be completely sent.
+     *
+     * Note that this method returns an [Completable],
+     * which only does actual work after calling [Completable.subscribe].
+     * Error-handling is done by implementing the onError callback in [Completable.subscribe].
+     * The actual exceptions are wrapped in a [KickprotocolSendException] for this method.
+     *
+     * @see send
+     * @see broadcast
+     * @see broadcastAndAwait
+     */
+    @CheckResult
+    fun sendAndAwait(endpointId: String, message: KickprotocolMessage): Completable {
+        val payload = message.toPayload(moshi)
+
+        val successCompletable = internalMessageSentSuccessSubject
+            .filter { (foundEndpointId, payloadId) -> foundEndpointId == endpointId && payloadId == payload.id }
+            .firstOrError()
+            .ignoreElement()
+
+        val errorCompletable = internalMessageSentFailureSubject
+            .filter { (foundEndpointId, payloadId) -> foundEndpointId == endpointId && payloadId == payload.id }
+            .flatMapCompletable { Completable.error(KickprotocolSendException("Could not send message")) }
+
+        return send(endpointId, payload)
+            .andThen(Completable.amb(listOf(successCompletable, errorCompletable)))
     }
 
     /**
@@ -241,16 +284,41 @@ class Kickprotocol(
      * which only does actual work after calling [Completable.subscribe].
      * Error-handling is done by implementing the onError callback in [Completable.subscribe].
      * The actual exceptions are wrapped in a [KickprotocolSendException] for this method.
+     *
+     * @see broadcastAndAwait
+     * @see send
+     * @see sendAndAwait
      */
     @CheckResult
     fun broadcast(message: KickprotocolMessage): Completable {
-        return Completable.fromAction {
-            connectedEndpoints.forEach { endpointId ->
-                nativeClient.sendPayload(endpointId, message.toPayload(moshi))
-                    .addOnFailureListener {
-                        KickprotocolSendException(endpointId, "Could not send message as part of broadcast", it)
-                    }
-            }
+        return Completable.merge(internalConnectedEndpoints.map { send(it, message) })
+    }
+
+    /**
+     * Method for sending a [message] to all connected devices.
+     *
+     * Note that this method returns an [Completable],
+     * which only does actual work after calling [Completable.subscribe].
+     * Error-handling is done by implementing the onError callback in [Completable.subscribe].
+     * The actual exceptions are wrapped in a [KickprotocolSendException] for this method.
+     *
+     * @see broadcast
+     * @see send
+     * @see sendAndAwait
+     */
+    @CheckResult
+    fun broadcastAndAwait(message: KickprotocolMessage): Completable {
+        return Completable.merge(internalConnectedEndpoints.map { sendAndAwait(it, message) })
+    }
+
+    @CheckResult
+    private fun send(endpointId: String, payload: Payload): Completable {
+        return Completable.create { emitter ->
+            nativeClient.sendPayload(endpointId, payload)
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener {
+                    emitter.onError(KickprotocolSendException(endpointId, "Could not send message", it))
+                }
         }
     }
 
@@ -272,11 +340,11 @@ class Kickprotocol(
     private inner class DefaultConnectionLifecycleCallback : ConnectionLifecycleCallback() {
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
             when (result.status.statusCode) {
-                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> throw KickprotocolConnectionException(
-                    endpointId, "Connection to endpoint $endpointId was rejected"
+                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> internalConnectionSubject.onError(
+                    KickprotocolConnectionException(endpointId, "Connection to endpoint $endpointId was rejected")
                 )
-                ConnectionsStatusCodes.STATUS_ERROR -> throw KickprotocolConnectionException(
-                    endpointId, "Could not connect to endpoint $endpointId"
+                ConnectionsStatusCodes.STATUS_ERROR -> internalConnectionSubject.onError(
+                    KickprotocolConnectionException(endpointId, "Could not connect to endpoint $endpointId")
                 )
                 ConnectionsStatusCodes.STATUS_OK -> {
                     internalConnectedEndpoints += endpointId
@@ -304,7 +372,13 @@ class Kickprotocol(
                     }
                 }
 
-                override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) = Unit
+                override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
+                    if (update.status == PayloadTransferUpdate.Status.SUCCESS) {
+                        internalMessageSentSuccessSubject.onNext(endpointId to update.payloadId)
+                    } else if (update.status == PayloadTransferUpdate.Status.FAILURE) {
+                        internalMessageSentFailureSubject.onNext(endpointId to update.payloadId)
+                    }
+                }
             })
         }
     }
@@ -325,7 +399,9 @@ class Kickprotocol(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T : KickprotocolMessage> Observable<KickprotocolMessageWithEndpoint<*>>.filterInstanceOf() =
-        this.filter { it.message is T }
-            .map { it as KickprotocolMessageWithEndpoint<T> }
+    private inline fun <reified T : KickprotocolMessage> KickObservable<*>.filterInstanceOf(): KickObservable<T> {
+        return this.filter { it.message is T }.map { it as KickprotocolMessageWithEndpoint<T> }
+    }
 }
+
+private typealias KickObservable<T> = Observable<KickprotocolMessageWithEndpoint<T>>

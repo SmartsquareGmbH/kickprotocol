@@ -1,10 +1,14 @@
 package de.smartsquare.kickprotocol.message
 
+import android.os.ParcelFileDescriptor
 import com.google.android.gms.nearby.connection.Payload
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
 import com.squareup.moshi.Moshi
 import de.smartsquare.kickprotocol.KickprotocolInvalidMessageException
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldBeInstanceOf
 import org.amshove.kluent.shouldThrow
@@ -71,6 +75,19 @@ class KickprotocolMessageKtTest {
         val message = payload.toNearbyMessage(moshi)
 
         message shouldBeInstanceOf IdleMessage::class
+    }
+
+    @Test
+    fun `from payload with null content`() {
+        mockkStatic(ParcelFileDescriptor::class)
+
+        every { ParcelFileDescriptor.open(any(), any()) } returns mockk()
+
+        val payload = Payload.fromFile(createTempFile().apply { deleteOnExit() })
+
+        val theFunction = { payload.toNearbyMessage(moshi) }
+
+        theFunction shouldThrow KickprotocolInvalidMessageException::class
     }
 
     @Test

@@ -8,4 +8,15 @@ import com.squareup.moshi.JsonClass
  * @author Ruben Gees
  */
 @JsonClass(generateAdapter = true)
-class IdleMessage : KickprotocolMessage()
+class IdleMessage : KickprotocolMessage() {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
+    }
+}
