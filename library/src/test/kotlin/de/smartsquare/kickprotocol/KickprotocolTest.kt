@@ -567,4 +567,34 @@ class KickprotocolTest {
             KickprotocolMessageWithEndpoint("endpoint2", StartGameMessage())
         )
     }
+
+    @Test
+    fun `receiving invalid messages`() {
+        val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
+        val payloadCallback = slot<PayloadCallback>()
+        val testObserver = TestObserver<KickprotocolMessageWithEndpoint<*>>()
+
+        every {
+            connectionsClient.startAdvertising(
+                any(),
+                any(),
+                capture(connectionLifecycleCallback),
+                any()
+            )
+        } returns mockk(relaxed = true)
+
+        every { connectionsClient.acceptConnection(any(), capture(payloadCallback)) } returns mockk()
+
+        kickprotocol.advertise("").subscribe()
+        connectionLifecycleCallback.captured.onConnectionInitiated("irrelevant", mockk())
+
+        kickprotocol.messageEvents.subscribe(testObserver)
+
+        payloadCallback.captured.onPayloadReceived("endpoint1", Payload.fromBytes("IdleMessage\n{}".toByteArray()))
+        payloadCallback.captured.onPayloadReceived("endpoint2", Payload.fromBytes("invalid\n{}".toByteArray()))
+
+        testObserver
+            .assertValues(KickprotocolMessageWithEndpoint("endpoint1", IdleMessage()))
+            .assertError(KickprotocolInvalidMessageException::class.java)
+    }
 }
