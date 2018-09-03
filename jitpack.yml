@@ -1,0 +1,2 @@
+install:
+- ./gradlew clean -Pgroup=com.github.Smartsquaregmbh -Pversion=master publishToMavenLocal
