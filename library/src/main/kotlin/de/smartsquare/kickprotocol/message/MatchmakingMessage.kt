@@ -5,6 +5,7 @@ import de.smartsquare.kickprotocol.Lobby
 
 /**
  * Message for reporting the current status of the server as matchmaking.
+ * The [lobby] contains the current state of matchmaking.
  *
  * @author Ruben Gees
  */
