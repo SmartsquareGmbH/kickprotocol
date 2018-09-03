@@ -12,7 +12,14 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.android.gms.tasks.Task
+import com.squareup.moshi.Moshi
+import de.smartsquare.kickprotocol.message.CreateGameMessage
 import de.smartsquare.kickprotocol.message.IdleMessage
+import de.smartsquare.kickprotocol.message.JoinLobbyMessage
+import de.smartsquare.kickprotocol.message.KickprotocolMessage
+import de.smartsquare.kickprotocol.message.LeaveLobbyMessage
+import de.smartsquare.kickprotocol.message.MatchmakingMessage
+import de.smartsquare.kickprotocol.message.PlayingMessage
 import de.smartsquare.kickprotocol.message.StartGameMessage
 import io.mockk.Runs
 import io.mockk.every
@@ -20,6 +27,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import io.reactivex.Observer
 import io.reactivex.observers.TestObserver
 import org.amshove.kluent.shouldBeEmpty
 import org.amshove.kluent.shouldBeEqualTo
@@ -164,6 +172,7 @@ class KickprotocolTest {
         payload.captured.asBytes()?.toString(Charsets.UTF_8) ?: "" shouldBeEqualTo "IdleMessage\n{}"
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `sending and awaiting`() {
         val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
@@ -206,6 +215,7 @@ class KickprotocolTest {
         testObserver.assertComplete()
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `sending and awaiting with error`() {
         val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
@@ -265,6 +275,7 @@ class KickprotocolTest {
         testObserver.assertError(KickprotocolSendException::class.java)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun broadcasting() {
         val okStatus = Status(ConnectionsStatusCodes.STATUS_OK)
@@ -308,6 +319,7 @@ class KickprotocolTest {
         payload2.captured.asBytes()?.toString(Charsets.UTF_8) ?: "" shouldBeEqualTo "IdleMessage\n{}"
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `broadcasting with error`() {
         val okStatus = Status(ConnectionsStatusCodes.STATUS_OK)
@@ -347,6 +359,7 @@ class KickprotocolTest {
         testObserver.assertError(KickprotocolSendException::class.java)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun stopping() {
         val okStatus = Status(ConnectionsStatusCodes.STATUS_OK)
@@ -429,6 +442,7 @@ class KickprotocolTest {
             .assertNotComplete()
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `connection events`() {
         val okStatus = Status(ConnectionsStatusCodes.STATUS_OK)
@@ -468,6 +482,7 @@ class KickprotocolTest {
             .assertNotComplete()
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `connection rejected`() {
         val rejectedStatus = Status(ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED)
@@ -492,6 +507,7 @@ class KickprotocolTest {
             .assertError(KickprotocolConnectionException::class.java)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `connection error`() {
         val rejectedStatus = Status(ConnectionsStatusCodes.STATUS_ERROR)
@@ -596,5 +612,83 @@ class KickprotocolTest {
         testObserver
             .assertValues(KickprotocolMessageWithEndpoint("endpoint1", IdleMessage()))
             .assertError(KickprotocolInvalidMessageException::class.java)
+    }
+
+    @Test
+    fun `receiving specific messages`() {
+        val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
+        val payloadCallback = slot<PayloadCallback>()
+
+        val lobby = Lobby("owner", "name", listOf("deen"), listOf("ruby"), 8, 7)
+
+        val testData = listOf(
+            Triple(
+                kickprotocol.idleMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<IdleMessage>>(),
+                IdleMessage()
+            ),
+            Triple(
+                kickprotocol.matchmakingMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<MatchmakingMessage>>(),
+                MatchmakingMessage(lobby.copy(name = "matchmaking"))
+            ),
+            Triple(
+                kickprotocol.playingMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<PlayingMessage>>(),
+                PlayingMessage(lobby.copy(name = "playing"))
+            ),
+            Triple(
+                kickprotocol.createGameMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<CreateGameMessage>>(),
+                CreateGameMessage("123", "deen")
+            ),
+            Triple(
+                kickprotocol.startGameMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<StartGameMessage>>(),
+                StartGameMessage()
+            ),
+            Triple(
+                kickprotocol.joinLobbyMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<JoinLobbyMessage>>(),
+                JoinLobbyMessage("321", "ruby", JoinLobbyMessage.TeamPosition.LEFT)
+            ),
+            Triple(
+                kickprotocol.leaveLobbyMessageEvents,
+                TestObserver<KickprotocolMessageWithEndpoint<LeaveLobbyMessage>>(),
+                LeaveLobbyMessage()
+            )
+        )
+
+        every {
+            connectionsClient.startAdvertising(
+                any(),
+                any(),
+                capture(connectionLifecycleCallback),
+                any()
+            )
+        } returns mockk(relaxed = true)
+
+        every { connectionsClient.acceptConnection(any(), capture(payloadCallback)) } returns mockk()
+
+        kickprotocol.advertise("").subscribe()
+        connectionLifecycleCallback.captured.onConnectionInitiated("endpoint", mockk())
+
+        testData.forEach { (observable, observer) ->
+            @Suppress("UNCHECKED_CAST")
+            observer as Observer<in KickprotocolMessageWithEndpoint<out KickprotocolMessage>>
+
+            observable.subscribe(observer)
+        }
+
+        testData.forEach { (_, _, message) ->
+            payloadCallback.captured.onPayloadReceived("endpoint", message.toPayload(Moshi.Builder().build()))
+        }
+
+        testData.forEach { (_, observer, message) ->
+            @Suppress("UNCHECKED_CAST")
+            observer as TestObserver<in KickprotocolMessageWithEndpoint<out KickprotocolMessage>>
+
+            observer.assertValuesOnly(KickprotocolMessageWithEndpoint("endpoint", message))
+        }
     }
 }
