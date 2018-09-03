@@ -52,6 +52,11 @@ class Kickprotocol(
 ) {
 
     companion object {
+
+        /**
+         * The default service id to use. Needs to be changed to the same on both
+         * the server and client for devices to be discovered.
+         */
         const val DEFAULT_SERVICE_ID = "de.smartsquare.kickprotocol"
     }
 

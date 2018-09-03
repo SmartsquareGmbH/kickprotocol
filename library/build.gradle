@@ -1,5 +1,5 @@
-import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.dokka.gradle.DokkaAndroidTask
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
@@ -56,11 +56,14 @@ tasks.withType(KotlinCompile).all {
     }
 }
 
-task dokkaJavadoc(type: DokkaTask) {
+task dokkaJavadoc(type: DokkaAndroidTask) {
     outputDirectory = "${project.buildDir}/javadoc"
     outputFormat = "javadoc"
 
     inputs.dir "src/main/kotlin"
+
+    externalDocumentationLink { url = new URL("http://reactivex.io/RxJava/javadoc/") }
+    externalDocumentationLink { url = new URL("https://square.github.io/moshi/1.x/moshi/") }
 }
 
 task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
