@@ -1,5 +1,5 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
@@ -26,6 +26,7 @@ android {
         targetSdkVersion 28
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.version
+        consumerProguardFiles rootProject.file("config/proguard/consumer-proguard-rules.pro")
     }
 
     sourceSets.each {
