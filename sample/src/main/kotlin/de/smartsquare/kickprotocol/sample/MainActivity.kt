@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.tbruyelle.rxpermissions2.RxPermissions
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
+import de.smartsquare.kickprotocol.ConnectionEvent
 import de.smartsquare.kickprotocol.Kickprotocol
 import de.smartsquare.kickprotocol.Lobby
 import de.smartsquare.kickprotocol.message.IdleMessage
@@ -24,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         kickprotocol.connectionEvents
+            .filter { it is ConnectionEvent.Connected }
             .autoDisposable(this.scope())
             .subscribe {
                 kickprotocol.sendAndAwait(it.endpointId, IdleMessage())
