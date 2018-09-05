@@ -1,5 +1,5 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.dokka.gradle.DokkaAndroidTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
@@ -100,9 +100,15 @@ publishing {
         library(MavenPublication) {
             artifactId "kickprotocol"
 
-            artifact(sourceJar)
-            artifact(javadocJar)
             artifact("$buildDir/outputs/aar/library-release.aar")
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+
+            artifact javadocJar {
+                classifier "javadoc"
+            }
 
             pom.withXml {
                 def dependenciesNode = asNode().appendNode("dependencies")
