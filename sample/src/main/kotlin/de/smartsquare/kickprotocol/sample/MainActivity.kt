@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
                     .subscribe()
             }
 
-        kickprotocol.createGameMessageEvents
+        kickprotocol.startGameMessageEvents
             .autoDisposable(this.scope())
             .subscribe {
                 val leftTeam = listOf("Sample", "Somebody")
