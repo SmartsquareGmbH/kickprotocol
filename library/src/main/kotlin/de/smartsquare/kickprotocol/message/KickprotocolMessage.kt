@@ -39,7 +39,7 @@ internal fun Payload.toNearbyMessage(moshi: Moshi): KickprotocolMessage {
     val type = try {
         Class.forName("de.smartsquare.kickprotocol.message.$head")
     } catch (exception: ClassNotFoundException) {
-        throw KickprotocolInvalidMessageException("Message with unknown type $type could not be parsed: $content")
+        throw KickprotocolInvalidMessageException("Message with unknown type $head could not be parsed: $content")
     }
 
     return try {
