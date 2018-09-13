@@ -31,6 +31,7 @@ class KickprotocolDiscoveryException(
 
 /**
  * Wrapper exception for all errors related to connections.
+ * The [endpointId] can be used for identifying the failing device.
  */
 class KickprotocolConnectionException(
     val endpointId: String,
@@ -40,6 +41,7 @@ class KickprotocolConnectionException(
 
 /**
  * Wrapper exception for all errors related to sending messages.
+ * The [endpointId] can be used for identifying the failing device.
  */
 class KickprotocolSendException(
     val endpointId: String,
