@@ -84,7 +84,7 @@ class Kickprotocol(
      * Observable emitting all messages sent by other devices.
      * See the specialized Observables for simplified usage.
      */
-    val messageEvents: KickObservable<*> get() = internalMessageSubject.hide()
+    val messageEvents: Observable<MessageEvent<*>> get() = internalMessageSubject.hide()
 
     /**
      * Observable emitting all [IdleMessage]s sent by other devices.
@@ -126,7 +126,7 @@ class Kickprotocol(
 
     private val internalDiscoverySubject = PublishSubject.create<DiscoveryEvent>()
     private val internalConnectionSubject = PublishSubject.create<ConnectionEvent>()
-    private val internalMessageSubject = PublishSubject.create<KickprotocolMessageWithEndpoint<*>>()
+    private val internalMessageSubject = PublishSubject.create<MessageEvent<*>>()
 
     private val internalMessageSentSuccessSubject = PublishSubject.create<Pair<String, Long>>()
     private val internalMessageSentFailureSubject = PublishSubject.create<Pair<String, Long>>()
@@ -368,13 +368,13 @@ class Kickprotocol(
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
             nativeClient.acceptConnection(endpointId, object : PayloadCallback() {
                 override fun onPayloadReceived(endpointId: String, payload: Payload) {
-                    try {
-                        val message = KickprotocolMessageWithEndpoint(endpointId, payload.toNearbyMessage(moshi))
-
-                        internalMessageSubject.onNext(message)
+                    val message = try {
+                        MessageEvent.Message(endpointId, payload.toNearbyMessage(moshi))
                     } catch (exception: KickprotocolException) {
-                        internalMessageSubject.onError(exception)
+                        MessageEvent.Error(endpointId, exception)
                     }
+
+                    internalMessageSubject.onNext(message)
                 }
 
                 override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
@@ -402,11 +402,4 @@ class Kickprotocol(
             internalDiscoverySubject.onNext(DiscoveryEvent.Lost(endpointId))
         }
     }
-
-    @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T : KickprotocolMessage> KickObservable<*>.filterInstanceOf(): KickObservable<T> {
-        return this.filter { it.message is T }.map { it as KickprotocolMessageWithEndpoint<T> }
-    }
 }
-
-private typealias KickObservable<T> = Observable<KickprotocolMessageWithEndpoint<T>>

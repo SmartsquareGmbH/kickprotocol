@@ -9,6 +9,7 @@ import com.uber.autodispose.autoDisposable
 import de.smartsquare.kickprotocol.ConnectionEvent
 import de.smartsquare.kickprotocol.Kickprotocol
 import de.smartsquare.kickprotocol.Lobby
+import de.smartsquare.kickprotocol.filterMessages
 import de.smartsquare.kickprotocol.message.IdleMessage
 import de.smartsquare.kickprotocol.message.JoinLobbyMessage.TeamPosition
 import de.smartsquare.kickprotocol.message.MatchmakingMessage
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
             }
 
         kickprotocol.createGameMessageEvents
+            .filterMessages()
             .autoDisposable(this.scope())
             .subscribe { (_, message) ->
                 val lobby = Lobby(message.username, "SampleLobby", listOf(message.username), emptyList(), 0, 0)
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
             }
 
         kickprotocol.joinLobbyMessageEvents
+            .filterMessages()
             .autoDisposable(this.scope())
             .subscribe { (_, message) ->
                 val leftTeam = listOf("Sample").let {

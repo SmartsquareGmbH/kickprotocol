@@ -17,4 +17,12 @@ sealed class ConnectionEvent(open val endpointId: String) {
      * Event signaling a disconnection. No messages can be sent or received after this event is emitted.
      */
     data class Disconnected(override val endpointId: String) : ConnectionEvent(endpointId)
+
+    /**
+     * Event signaling an error related to connections. The [error] property contains the cause.
+     */
+    data class Error(
+        override val endpointId: String,
+        val error: KickprotocolConnectionException
+    ) : ConnectionEvent(endpointId)
 }

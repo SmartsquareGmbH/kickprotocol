@@ -16,7 +16,6 @@ import com.squareup.moshi.Moshi
 import de.smartsquare.kickprotocol.message.CreateGameMessage
 import de.smartsquare.kickprotocol.message.IdleMessage
 import de.smartsquare.kickprotocol.message.JoinLobbyMessage
-import de.smartsquare.kickprotocol.message.KickprotocolMessage
 import de.smartsquare.kickprotocol.message.LeaveLobbyMessage
 import de.smartsquare.kickprotocol.message.MatchmakingMessage
 import de.smartsquare.kickprotocol.message.PlayingMessage
@@ -557,7 +556,7 @@ class KickprotocolTest {
     fun `receiving messages`() {
         val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
         val payloadCallback = slot<PayloadCallback>()
-        val testObserver = TestObserver<KickprotocolMessageWithEndpoint<*>>()
+        val testObserver = TestObserver<MessageEvent<*>>()
 
         every {
             connectionsClient.startAdvertising(
@@ -579,8 +578,8 @@ class KickprotocolTest {
         payloadCallback.captured.onPayloadReceived("endpoint2", Payload.fromBytes("StartGameMessage\n{}".toByteArray()))
 
         testObserver.assertValuesOnly(
-            KickprotocolMessageWithEndpoint("endpoint1", IdleMessage()),
-            KickprotocolMessageWithEndpoint("endpoint2", StartGameMessage())
+            MessageEvent.Message("endpoint1", IdleMessage()),
+            MessageEvent.Message("endpoint2", StartGameMessage())
         )
     }
 
@@ -588,7 +587,7 @@ class KickprotocolTest {
     fun `receiving invalid messages`() {
         val connectionLifecycleCallback = slot<ConnectionLifecycleCallback>()
         val payloadCallback = slot<PayloadCallback>()
-        val testObserver = TestObserver<KickprotocolMessageWithEndpoint<*>>()
+        val testObserver = TestObserver<MessageEvent<*>>()
 
         every {
             connectionsClient.startAdvertising(
@@ -608,10 +607,13 @@ class KickprotocolTest {
 
         payloadCallback.captured.onPayloadReceived("endpoint1", Payload.fromBytes("IdleMessage\n{}".toByteArray()))
         payloadCallback.captured.onPayloadReceived("endpoint2", Payload.fromBytes("invalid\n{}".toByteArray()))
+        payloadCallback.captured.onPayloadReceived("endpoint2", Payload.fromBytes("IdleMessage\n{}".toByteArray()))
 
         testObserver
-            .assertValues(KickprotocolMessageWithEndpoint("endpoint1", IdleMessage()))
-            .assertError(KickprotocolInvalidMessageException::class.java)
+            .assertValueAt(0, MessageEvent.Message("endpoint1", IdleMessage()))
+            .assertValueAt(1) { (it as MessageEvent.Error).error is KickprotocolInvalidMessageException }
+            .assertValueAt(2, MessageEvent.Message("endpoint2", IdleMessage()))
+            .assertNotTerminated()
     }
 
     @Test
@@ -624,37 +626,37 @@ class KickprotocolTest {
         val testData = listOf(
             Triple(
                 kickprotocol.idleMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<IdleMessage>>(),
+                TestObserver<MessageEvent.Message<IdleMessage>>(),
                 IdleMessage()
             ),
             Triple(
                 kickprotocol.matchmakingMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<MatchmakingMessage>>(),
+                TestObserver<MessageEvent.Message<MatchmakingMessage>>(),
                 MatchmakingMessage(lobby.copy(name = "matchmaking"))
             ),
             Triple(
                 kickprotocol.playingMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<PlayingMessage>>(),
+                TestObserver<MessageEvent.Message<PlayingMessage>>(),
                 PlayingMessage(lobby.copy(name = "playing"))
             ),
             Triple(
                 kickprotocol.createGameMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<CreateGameMessage>>(),
+                TestObserver<MessageEvent.Message<CreateGameMessage>>(),
                 CreateGameMessage("123", "deen")
             ),
             Triple(
                 kickprotocol.startGameMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<StartGameMessage>>(),
+                TestObserver<MessageEvent.Message<StartGameMessage>>(),
                 StartGameMessage()
             ),
             Triple(
                 kickprotocol.joinLobbyMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<JoinLobbyMessage>>(),
+                TestObserver<MessageEvent.Message<JoinLobbyMessage>>(),
                 JoinLobbyMessage("321", "ruby", JoinLobbyMessage.TeamPosition.LEFT)
             ),
             Triple(
                 kickprotocol.leaveLobbyMessageEvents,
-                TestObserver<KickprotocolMessageWithEndpoint<LeaveLobbyMessage>>(),
+                TestObserver<MessageEvent.Message<LeaveLobbyMessage>>(),
                 LeaveLobbyMessage()
             )
         )
@@ -675,7 +677,7 @@ class KickprotocolTest {
 
         testData.forEach { (observable, observer) ->
             @Suppress("UNCHECKED_CAST")
-            observer as Observer<in KickprotocolMessageWithEndpoint<out KickprotocolMessage>>
+            observer as Observer<in MessageEvent<*>>
 
             observable.subscribe(observer)
         }
@@ -686,9 +688,9 @@ class KickprotocolTest {
 
         testData.forEach { (_, observer, message) ->
             @Suppress("UNCHECKED_CAST")
-            observer as TestObserver<in KickprotocolMessageWithEndpoint<out KickprotocolMessage>>
+            observer as TestObserver<in MessageEvent.Message<*>>
 
-            observer.assertValuesOnly(KickprotocolMessageWithEndpoint("endpoint", message))
+            observer.assertValuesOnly(MessageEvent.Message("endpoint", message))
         }
     }
 }
