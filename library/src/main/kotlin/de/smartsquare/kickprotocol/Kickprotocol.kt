@@ -345,11 +345,15 @@ class Kickprotocol(
     private inner class DefaultConnectionLifecycleCallback : ConnectionLifecycleCallback() {
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
             when (result.status.statusCode) {
-                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> internalConnectionSubject.onError(
-                    KickprotocolConnectionException(endpointId, "Connection to endpoint $endpointId was rejected")
+                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> internalConnectionSubject.onNext(
+                    ConnectionEvent.Error(
+                        endpointId, KickprotocolConnectionException("Connection to endpoint $endpointId was rejected")
+                    )
                 )
-                ConnectionsStatusCodes.STATUS_ERROR -> internalConnectionSubject.onError(
-                    KickprotocolConnectionException(endpointId, "Could not connect to endpoint $endpointId")
+                ConnectionsStatusCodes.STATUS_ERROR -> internalConnectionSubject.onNext(
+                    ConnectionEvent.Error(
+                        endpointId, KickprotocolConnectionException("Could not connect to endpoint $endpointId")
+                    )
                 )
                 ConnectionsStatusCodes.STATUS_OK -> {
                     internalConnectedEndpoints += endpointId

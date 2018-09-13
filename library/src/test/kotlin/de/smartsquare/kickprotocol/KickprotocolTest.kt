@@ -502,8 +502,8 @@ class KickprotocolTest {
         connectionLifecycleCallback.captured.onConnectionResult("endpoint", ConnectionResolution(rejectedStatus))
 
         testObserver
-            .assertNoValues()
-            .assertError(KickprotocolConnectionException::class.java)
+            .assertValue { it is ConnectionEvent.Error && it.endpointId == "endpoint" }
+            .assertNotTerminated()
     }
 
     @Suppress("DEPRECATION")
@@ -527,8 +527,8 @@ class KickprotocolTest {
         connectionLifecycleCallback.captured.onConnectionResult("endpoint", ConnectionResolution(rejectedStatus))
 
         testObserver
-            .assertNoValues()
-            .assertError(KickprotocolConnectionException::class.java)
+            .assertValue { it is ConnectionEvent.Error && it.endpointId == "endpoint" }
+            .assertNotTerminated()
     }
 
     @Test
